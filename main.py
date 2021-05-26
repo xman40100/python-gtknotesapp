@@ -132,14 +132,24 @@ class MainWindow(Gtk.Window):
         label.set_justify(Gtk.Justification.LEFT)
         self.container.attach(label, 1, 1, 1, 1)
 
+        # add a text counter
+        text = "Character count: 0/%d" % (Note.MAX_LENGTH)
+        self.text_counter = Gtk.Label(label=text)
+        label.set_justify(Gtk.Justification.CENTER)
+        self.container.attach(self.text_counter, 1, 2, 12, 1)
+
         # add an text_input for typing
         self.text_input = Gtk.TextView()
-        self.text_input.set_hexpand(True)
-        self.container.attach(self.text_input, 1, 2, 12, 3)
+        self.text_input.set_hexpand(False)
+        self.text_input.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        buffer = self.text_input.get_buffer()
+        buffer.connect("changed", self.update_charcount)
+
+        self.container.attach(self.text_input, 1, 3, 12, 4)
 
         # get the stored notes and add them into the GUI
         notes = self.get_notes()
-        self.container.attach(notes, 1, 5, 12, 1)
+        self.container.attach(notes, 1, 7, 12, 1)
 
         # add them to main GUI
         scrollview.add(self.container)
@@ -159,11 +169,10 @@ class MainWindow(Gtk.Window):
     # This method allows to insert a new note into the database.
     def insert_note(self, widget):
         # get the text and check if it's not empty.
+        text = self.get_text_input()
         text_buffer = self.text_input.get_buffer()
-        start, end = text_buffer.get_bounds()
-        text = text_buffer.get_text(start, end, True)
-
         if len(text) == 0:
+            self.create_error_dialog("Notes can't be empty!", None, "You cannot write an empty note.")
             return
 
         # insert on the database using the connection instance.
@@ -172,14 +181,8 @@ class MainWindow(Gtk.Window):
             self.create_error_dialog("An error has occured!", None, "An error has occured while trying to insert a new note.")
             return
 
-        # reload the notes widget.
-        self.container.remove_row(5)
-
-        # get the notes and set text to null.
-        notes = self.get_notes()
-        self.container.attach(notes, 1, 5, 12, 1)
+        self.reload_notes()
         text_buffer.set_text("")
-        self.container.show_all()
     
     # This method allows to view a note.
     def view_note(self, widget, note_id):
@@ -211,12 +214,7 @@ class MainWindow(Gtk.Window):
             return
         
         # reload the notes widget.
-        self.container.remove_row(5)
-
-        # get the notes and set text to null.
-        notes = self.get_notes()
-        self.container.attach(notes, 1, 5, 12, 1)
-        self.container.show_all()
+        self.reload_notes()
     
     # This method allows to create a quick error dialog.
     def create_error_dialog(self, dialog_title, dialog_subtitle, dialog_text):
@@ -231,7 +229,39 @@ class MainWindow(Gtk.Window):
         )
         dialog.run()
         dialog.destroy()
+
+    # This method allows to update the current character count.
+    def update_charcount(self, buffer):
+        start, end = buffer.get_bounds()
+        text = buffer.get_text(start, end, True)
+        length = len(text)
+        if length > Note.MAX_LENGTH:
+            # if note is larger than the database says, we'll reset the text
+            # so the user can't set more characters.
+            text_reset = text[0:Note.MAX_LENGTH]
+            buffer.set_text(text_reset)
+            length = length - 1
         
+        self.text_counter.set_text("Character count: %d/%d" % (length, Note.MAX_LENGTH))
+        return length
+
+    # This method allows to reload the notes widget.
+    def reload_notes(self):
+        # reload the notes widget.
+        self.container.remove_row(7)
+
+        # get the notes and set text to null.
+        notes = self.get_notes()
+        self.container.attach(notes, 1, 7, 12, 1)
+        self.container.show_all()
+
+    # This method returns the text from the input to write a note.
+    def get_text_input(self):
+        text_buffer = self.text_input.get_buffer()
+        start, end = text_buffer.get_bounds()
+        text = text_buffer.get_text(start, end, True)
+        return text
+
     
 # instantiate new window, show it, and use the main GTk loop.
 window = MainWindow()

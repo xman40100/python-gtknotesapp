@@ -7,6 +7,7 @@ class Note:
     id = None
     text = None
     created_at = None
+    MAX_LENGTH = 2000
 
     def __init__(self, id, text, created_at):
         self.id = id
@@ -86,7 +87,8 @@ class Note:
             note_created_at = created_timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None).strftime("%Y-%m-%d %H:%M:%S")
 
             note_view = NoteView(parent, note_text, note_created_at)
-            note_view.connect("destroy", note_view.destroy)
+            note_view.show_all()
+            # note_view.connect("destroy", note_view.destroy)
         except sqlite3.Error as error:
             print("An error has occured: ", error)
             parent.create_error_dialog("An error has occured!", None, "An error has occured while trying to view the selected note.")

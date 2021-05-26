@@ -12,7 +12,7 @@ class DB:
             print("Checking existing tables...")
 
             # check if table exists, fetch results and run migrations if table doesn't exist.
-            cursor.execute("SELECT name FROM sqlite_master WHERE name = 'notes'")
+            cursor.execute("SELECT name FROM sqlite_master WHERE name IN ('notes')")
             records = cursor.fetchall()
             if (len(records) == 1):
                 print("Table exists.")
@@ -31,7 +31,9 @@ class DB:
         
     # This method destroy the instance of the current connection to the database.
     def destroy_instance(self):
+        print("Destroying connection instance.")
         if not (self.db_instance is None):
+            print("Destroyed.")
             self.db_instance.close()
             return True
         return False
@@ -41,9 +43,10 @@ class DB:
         try:
             print("Creating notes table.")
             cursor = self.db_instance.cursor()
-            cursor.execute("CREATE TABLE notes (ID INTEGER PRIMARY KEY AUTOINCREMENT, text VARCHAR(2000), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            cursor.execute("CREATE TABLE IF NOT EXISTS notes (ID INTEGER PRIMARY KEY AUTOINCREMENT, text VARCHAR(2000), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
             self.db_instance.commit()
             cursor.close()
         except sqlite3.Error as error:
             print("Error running migration: ", error)
+            return False
         return True
